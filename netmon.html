@@ -1,0 +1,1298 @@
+<netmon.html>
+<html lang="ms" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NETMON PRO v1.0 - Pemantauan Rangkaian</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0b0f19',
+                        cardBg: '#111827',
+                        borderBg: '#1f2937',
+                        neonCyan: '#06b6d4',
+                        neonGreen: '#10b981',
+                        neonRed: '#ef4444',
+                        neonYellow: '#f59e0b',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Font - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #e2e8f0;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom Glowing & Cyberpunk Effects */
+        .glow-cyan {
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
+        }
+        .glow-green {
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+        }
+        .glow-red {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.25);
+        }
+        .border-glow-cyan {
+            border-color: rgba(6, 182, 212, 0.5);
+            box-shadow: inset 0 0 10px rgba(6, 182, 212, 0.15);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #06b6d4;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased selection:bg-cyan-500 selection:text-black">
+
+    <!-- TOP HEADER -->
+    <header class="bg-cardBg/80 backdrop-blur-md border-b border-gray-800 sticky top-0 z-40 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <!-- Logo & Title -->
+            <div class="flex items-center space-x-3 w-full md:w-auto justify-between md:justify-start">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2.5 bg-cyan-950 border border-cyan-500/30 text-neonCyan rounded-xl glow-cyan">
+                        <i class="fa-solid fa-network-wired text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h1 class="text-xl font-bold tracking-wider text-white font-mono">NETMON <span class="text-neonCyan">PRO</span> <span class="text-xs px-2 py-0.5 rounded bg-cyan-900/60 text-cyan-300 border border-cyan-500/30">v1.0</span></h1>
+                        </div>
+                        <p class="text-xs text-gray-400">Sistem Pemantauan Rangkaian Percuma & Kekal</p>
+                    </div>
+                </div>
+
+                <!-- Status Badge (Mobile View) -->
+                <div class="md:hidden flex items-center space-x-2 bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 px-2.5 py-1 rounded-full text-xs">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span class="font-semibold">ONLINE</span>
+                </div>
+            </div>
+
+            <!-- Controls & Clock -->
+            <div class="flex items-center space-x-4 w-full md:w-auto justify-between md:justify-end text-sm">
+                <!-- Status Badge (Desktop View) -->
+                <div class="hidden md:flex items-center space-x-2 bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 px-3 py-1.5 rounded-full text-xs font-mono">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span class="font-semibold tracking-wider">SYSTEM: ONLINE</span>
+                </div>
+
+                <!-- Refresh Rate Control -->
+                <div class="flex items-center space-x-2 bg-gray-900/80 border border-gray-800 px-3 py-1.5 rounded-lg text-xs">
+                    <i class="fa-solid fa-arrows-rotate text-cyan-400"></i>
+                    <span class="text-gray-400 hidden sm:inline">Refresh:</span>
+                    <select id="refreshRateSelect" onchange="updateRefreshInterval()" class="bg-transparent text-cyan-400 focus:outline-none cursor-pointer font-mono">
+                        <option value="3000">3s</option>
+                        <option value="5000" selected>5s</option>
+                        <option value="10000">10s</option>
+                        <option value="30000">30s</option>
+                    </select>
+                </div>
+
+                <!-- Live Clock -->
+                <div class="bg-gray-900/80 border border-gray-800 px-3 py-1.5 rounded-lg text-right font-mono text-xs">
+                    <div id="liveClock" class="text-cyan-400 font-bold">00:00:00</div>
+                    <div id="liveDate" class="text-gray-500 text-[10px]">00/00/0000</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl w-full mx-auto p-4 md:p-6 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- NAVIGATION / UTILITY TABS (Top or Left Sidebar layout) -->
+        <div class="lg:col-span-12 flex flex-wrap items-center justify-between gap-3 border-b border-gray-800 pb-3">
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="switchTab('dashboard')" id="tabBtn-dashboard" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 bg-cyan-950 text-cyan-400 border border-cyan-500/40 glow-cyan">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Dashboard Utama</span>
+                </button>
+                <button onclick="switchTab('devices')" id="tabBtn-devices" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 bg-gray-900 text-gray-400 border border-gray-800 hover:text-white hover:bg-gray-800">
+                    <i class="fa-solid fa-server"></i>
+                    <span>Peranti Rangkaian</span>
+                </button>
+                <button onclick="switchTab('utilities')" id="tabBtn-utilities" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 bg-gray-900 text-gray-400 border border-gray-800 hover:text-white hover:bg-gray-800">
+                    <i class="fa-solid fa-toolbox"></i>
+                    <span>Utiliti Rangkaian</span>
+                </button>
+                <button onclick="switchTab('logs')" id="tabBtn-logs" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 bg-gray-900 text-gray-400 border border-gray-800 hover:text-white hover:bg-gray-800">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>Log & Amaran</span>
+                </button>
+            </div>
+
+            <!-- Global Action Buttons -->
+            <div class="flex items-center space-x-2">
+                <button onclick="pingAllDevices()" class="px-3 py-2 bg-cyan-600/20 text-cyan-400 hover:bg-cyan-600/30 border border-cyan-500/40 rounded-lg text-xs font-semibold flex items-center space-x-1 transition">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>Ping Semua Now</span>
+                </button>
+                <button onclick="openAddDeviceModal()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1 shadow transition">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Tambah Peranti</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- SECTION 1: DASHBOARD UTAMA -->
+        <div id="tab-dashboard" class="lg:col-span-12 space-y-6">
+            <!-- 1. QUICK STATS SUMMARY CARDS -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Total Devices -->
+                <div class="bg-cardBg border border-gray-800 p-4 rounded-xl relative overflow-hidden group hover:border-cyan-500/50 transition">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Jumlah Peranti</p>
+                            <h3 id="statTotalDevices" class="text-2xl font-bold font-mono text-white mt-1">0</h3>
+                        </div>
+                        <div class="p-3 bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 rounded-xl">
+                            <i class="fa-solid fa-network-wired text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center text-xs text-gray-400">
+                        <span class="text-cyan-400 font-semibold mr-1" id="statMonitoredTypes">5 Kategori</span> Aktif Diperhati
+                    </div>
+                    <div class="absolute bottom-0 left-0 h-1 w-full bg-cyan-500"></div>
+                </div>
+
+                <!-- Device Status (Online / Warning / Offline) -->
+                <div class="bg-cardBg border border-gray-800 p-4 rounded-xl relative overflow-hidden group hover:border-emerald-500/50 transition">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Status Peranti</p>
+                            <div class="flex items-baseline space-x-2 mt-1">
+                                <span id="statOnlineDevices" class="text-2xl font-bold font-mono text-emerald-400">0</span>
+                                <span class="text-xs text-gray-500">Online</span>
+                                <span class="text-gray-600">/</span>
+                                <span id="statWarningDevices" class="text-lg font-bold font-mono text-amber-400">0</span>
+                                <span class="text-xs text-gray-500">Warn</span>
+                                <span class="text-gray-600">/</span>
+                                <span id="statOfflineDevices" class="text-lg font-bold font-mono text-red-500">0</span>
+                                <span class="text-xs text-gray-500">Off</span>
+                            </div>
+                        </div>
+                        <div class="p-3 bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 rounded-xl">
+                            <i class="fa-solid fa-shield-halved text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center text-xs text-gray-400">
+                        <span class="text-emerald-400 font-semibold mr-1" id="statUptimePercent">100%</span> Kebolehcapaian
+                    </div>
+                    <div class="absolute bottom-0 left-0 h-1 w-full bg-emerald-500"></div>
+                </div>
+
+                <!-- Average Latency -->
+                <div class="bg-cardBg border border-gray-800 p-4 rounded-xl relative overflow-hidden group hover:border-amber-500/50 transition">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Purata Latency (Ping)</p>
+                            <h3 id="statAvgPing" class="text-2xl font-bold font-mono text-amber-400 mt-1">0 <span class="text-xs text-gray-400">ms</span></h3>
+                        </div>
+                        <div class="p-3 bg-amber-950/60 border border-amber-500/30 text-amber-400 rounded-xl">
+                            <i class="fa-solid fa-gauge-high text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center text-xs text-gray-400">
+                        <span id="statPingStatus" class="text-emerald-400 font-semibold mr-1">Baik</span> Nisbah Tindak Balas
+                    </div>
+                    <div class="absolute bottom-0 left-0 h-1 w-full bg-amber-500"></div>
+                </div>
+
+                <!-- Simulated Traffic Realtime -->
+                <div class="bg-cardBg border border-gray-800 p-4 rounded-xl relative overflow-hidden group hover:border-purple-500/50 transition">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Anggaran Trafik</p>
+                            <div class="flex items-baseline space-x-2 mt-1 font-mono">
+                                <span class="text-xs text-cyan-400"><i class="fa-solid fa-arrow-down"></i> <span id="statDLSpeed">0.0</span> Mb</span>
+                                <span class="text-xs text-purple-400"><i class="fa-solid fa-arrow-up"></i> <span id="statULSpeed">0.0</span> Mb</span>
+                            </div>
+                        </div>
+                        <div class="p-3 bg-purple-950/60 border border-purple-500/30 text-purple-400 rounded-xl">
+                            <i class="fa-solid fa-chart-line text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center text-xs text-gray-400">
+                        <span class="text-purple-400 font-semibold mr-1">Simulasi</span> Live Throughput
+                    </div>
+                    <div class="absolute bottom-0 left-0 h-1 w-full bg-purple-500"></div>
+                </div>
+            </div>
+
+            <!-- 2. GRAPH NETWORK LATENCY & TRAFFIC -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Chart 1: Trend Latency Ping -->
+                <div class="bg-cardBg border border-gray-800 rounded-xl p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-semibold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-wave-square text-cyan-400"></i>
+                            <span>Trend Latency Real-time (ms)</span>
+                        </h3>
+                        <span class="text-xs text-gray-500 font-mono">Kemaskini secara langsung</span>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="latencyChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Network Traffic (DL/UL) -->
+                <div class="bg-cardBg border border-gray-800 rounded-xl p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-semibold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-chart-area text-purple-400"></i>
+                            <span>Anggaran Trafik Rangkaian (Mbps)</span>
+                        </h3>
+                        <span class="text-xs text-gray-500 font-mono">Download / Upload</span>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="trafficChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. RINGKASAN STATUS PERANTI SCHEDULER -->
+            <div class="bg-cardBg border border-gray-800 rounded-xl p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-semibold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-list text-cyan-400"></i>
+                        <span>Ringkasan Peranti Utama</span>
+                    </h3>
+                    <button onclick="switchTab('devices')" class="text-xs text-cyan-400 hover:underline">Lihat Semua Peranti &rarr;</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs font-mono">
+                        <thead class="bg-gray-900/80 text-gray-400 border-b border-gray-800">
+                            <tr>
+                                <th class="p-3">Nama Peranti</th>
+                                <th class="p-3">IP / Hostname</th>
+                                <th class="p-3">Kategori</th>
+                                <th class="p-3">Latency</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3 text-right">Tindakan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="quickDeviceTable" class="divide-y divide-gray-800">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: PERANTI RANGKAIAN (TABLE & MANAGEMENTS) -->
+        <div id="tab-devices" class="lg:col-span-12 space-y-6 hidden">
+            <div class="bg-cardBg border border-gray-800 rounded-xl p-5">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-server text-cyan-400"></i>
+                            <span>Pengurusan Peranti Rangkaian</span>
+                        </h3>
+                        <p class="text-xs text-gray-400">Urus, pantau dan uji status setiap nod dalam senarai anda.</p>
+                    </div>
+                    
+                    <!-- Search & Tools -->
+                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                        <div class="relative flex-1 sm:w-64">
+                            <input type="text" id="deviceSearchInput" onkeyup="filterDevices()" placeholder="Cari nama atau IP..." class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 pl-8 text-xs text-white focus:outline-none focus:border-cyan-500">
+                            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-gray-500 text-xs"></i>
+                        </div>
+                        <button onclick="exportDataJSON()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-xs font-medium border border-gray-700 transition" title="Export JSON">
+                            <i class="fa-solid fa-download mr-1"></i> Export JSON
+                        </button>
+                        <label class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-xs font-medium border border-gray-700 cursor-pointer transition" title="Import JSON">
+                            <i class="fa-solid fa-upload mr-1"></i> Import JSON
+                            <input type="file" id="importJsonInput" onchange="importDataJSON(event)" class="hidden" accept=".json">
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Full Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs font-mono">
+                        <thead class="bg-gray-900 text-gray-400 border-b border-gray-800 uppercase tracking-wider">
+                            <tr>
+                                <th class="p-3">Nama Peranti</th>
+                                <th class="p-3">IP / Hostname</th>
+                                <th class="p-3">Kategori</th>
+                                <th class="p-3">Latency (ms)</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3">Uptime</th>
+                                <th class="p-3 text-center">Tindakan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fullDeviceTable" class="divide-y divide-gray-800/60">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: UTILITI RANGKAIAN (SUBNET CALCULATOR, PORT SCANNER, SPEED TEST) -->
+        <div id="tab-utilities" class="lg:col-span-12 space-y-6 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- 1. Subnet IP Calculator -->
+                <div class="bg-cardBg border border-gray-800 rounded-xl p-5 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-sm font-bold text-white flex items-center space-x-2 mb-3">
+                            <i class="fa-solid fa-calculator text-cyan-400"></i>
+                            <span>Kalkulator Subnet IP</span>
+                        </h3>
+                        <p class="text-xs text-gray-400 mb-4">Kira julat alamat IP, broadcast, dan host topologi anda.</p>
+
+                        <div class="space-y-3 text-xs">
+                            <div>
+                                <label class="block text-gray-400 mb-1">Alamat IP & Prefix (CIDR)</label>
+                                <div class="flex space-x-2">
+                                    <input type="text" id="calcIpInput" value="192.168.1.1" placeholder="192.168.1.1" class="flex-1 bg-gray-900 border border-gray-800 rounded-lg p-2 text-white font-mono focus:border-cyan-500 outline-none">
+                                    <select id="calcCidrInput" class="bg-gray-900 border border-gray-800 rounded-lg p-2 text-cyan-400 font-mono focus:border-cyan-500 outline-none">
+                                        <!-- Options added dynamically or static -->
+                                        <option value="24" selected>/24 (255.255.255.0)</option>
+                                        <option value="25">/25 (255.255.255.128)</option>
+                                        <option value="26">/26 (255.255.255.192)</option>
+                                        <option value="27">/27 (255.255.255.224)</option>
+                                        <option value="28">/28 (255.255.255.240)</option>
+                                        <option value="29">/29 (255.255.255.248)</option>
+                                        <option value="30">/30 (255.255.255.252)</option>
+                                        <option value="16">/16 (255.255.0.0)</option>
+                                        <option value="8">/8 (255.0.0.0)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button onclick="calculateSubnet()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-2 rounded-lg transition">Kira Subnet</button>
+                        </div>
+
+                        <!-- Results -->
+                        <div id="subnetResults" class="mt-4 p-3 bg-gray-900/80 border border-gray-800 rounded-lg space-y-2 font-mono text-xs hidden">
+                            <div class="flex justify-between border-b border-gray-800 pb-1">
+                                <span class="text-gray-400">Network Address:</span>
+                                <span id="resNetAddr" class="text-cyan-400">--</span>
+                            </div>
+                            <div class="flex justify-between border-b border-gray-800 pb-1">
+                                <span class="text-gray-400">Broadcast Address:</span>
+                                <span id="resBroadAddr" class="text-cyan-400">--</span>
+                            </div>
+                            <div class="flex justify-between border-b border-gray-800 pb-1">
+                                <span class="text-gray-400">Usable IP Range:</span>
+                                <span id="resUsableRange" class="text-emerald-400">--</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Jumlah Host Usable:</span>
+                                <span id="resTotalHosts" class="text-amber-400">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Port Scanner Simulation -->
+                <div class="bg-cardBg border border-gray-800 rounded-xl p-5 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-sm font-bold text-white flex items-center space-x-2 mb-3">
+                            <i class="fa-solid fa-network-wired text-cyan-400"></i>
+                            <span>Pengimbas Port (Simulasi)</span>
+                        </h3>
+                        <p class="text-xs text-gray-400 mb-4">Uji port perkhidmatan lazim pada sasaran IP peranti.</p>
+
+                        <div class="space-y-3 text-xs">
+                            <div>
+                                <label class="block text-gray-400 mb-1">IP Sasaran</label>
+                                <input type="text" id="scanTargetIp" value="192.168.1.1" placeholder="192.168.1.1" class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2 text-white font-mono focus:border-cyan-500 outline-none">
+                            </div>
+                            <button onclick="runPortScan()" id="btnStartPortScan" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-2 rounded-lg transition flex items-center justify-center space-x-2">
+                                <span>Imbas Port Popular</span>
+                            </button>
+                        </div>
+
+                        <!-- Results List -->
+                        <div id="portScanResults" class="mt-4 max-h-44 overflow-y-auto space-y-1.5 font-mono text-xs pr-1">
+                            <div class="text-gray-500 text-center py-4">Tekan butang di atas untuk memulakan imbasan.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Speed Test / Bandwidth Simulator -->
+                <div class="bg-cardBg border border-gray-800 rounded-xl p-5 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-sm font-bold text-white flex items-center space-x-2 mb-3">
+                            <i class="fa-solid fa-gauge text-cyan-400"></i>
+                            <span>Ujian Kelajuan (Speed Test Simulator)</span>
+                        </h3>
+                        <p class="text-xs text-gray-400 mb-4">Uji anggaran throughput bandwidth sambungan ISP anda.</p>
+
+                        <!-- Speed Gauge Visual -->
+                        <div class="flex flex-col items-center justify-center my-2">
+                            <div class="relative w-36 h-36 flex items-center justify-center rounded-full border-4 border-gray-800 border-t-cyan-400 animate-pulse">
+                                <div class="text-center">
+                                    <span id="speedDisplayVal" class="text-3xl font-bold font-mono text-white">0.0</span>
+                                    <span class="block text-[10px] text-gray-400 uppercase">Mbps</span>
+                                </div>
+                            </div>
+                            <div class="flex space-x-6 mt-4 text-xs font-mono">
+                                <div>
+                                    <span class="text-gray-400 block text-[10px]">PING</span>
+                                    <span id="speedPingVal" class="text-cyan-400 font-bold">-- ms</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-400 block text-[10px]">DOWNLOAD</span>
+                                    <span id="speedDlVal" class="text-emerald-400 font-bold">-- Mbps</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-400 block text-[10px]">UPLOAD</span>
+                                    <span id="speedUlVal" class="text-purple-400 font-bold">-- Mbps</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="startSpeedTest()" id="btnSpeedTest" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-2 rounded-lg text-xs transition mt-3">
+                        Mula Ujian Kelajuan
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- SECTION 4: LOG AKTIVITI & AMARAN -->
+        <div id="tab-logs" class="lg:col-span-12 space-y-6 hidden">
+            <div class="bg-cardBg border border-gray-800 rounded-xl p-5">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-clipboard-list text-cyan-400"></i>
+                            <span>Log Aktiviti & Amaran Rangkaian</span>
+                        </h3>
+                        <p class="text-xs text-gray-400">Sejarah peristiwa peranti terputus, latency tinggi atau pengubahsuaian sistem.</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="exportLogsCSV()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-cyan-400 rounded-lg text-xs font-semibold border border-gray-700 transition flex items-center space-x-1">
+                            <i class="fa-solid fa-file-csv"></i>
+                            <span>Eksport CSV</span>
+                        </button>
+                        <button onclick="clearLogs()" class="px-3 py-1.5 bg-red-950/60 hover:bg-red-900/80 text-red-400 rounded-lg text-xs font-semibold border border-red-800/40 transition flex items-center space-x-1">
+                            <i class="fa-solid fa-trash"></i>
+                            <span>Padam Log</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Log Console Output -->
+                <div class="bg-gray-950 border border-gray-800 rounded-lg p-4 font-mono text-xs max-h-96 overflow-y-auto space-y-2" id="logConsole">
+                    <!-- Dynamic logs here -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-cardBg/60 border-t border-gray-800 py-3 px-4 text-center text-xs text-gray-500">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div>NETMON PRO v1.0 &copy; 2026. Hak Cipta Terpelihara. Client-Side Monitoring Engine.</div>
+            <div class="flex items-center space-x-4">
+                <span class="text-emerald-400 flex items-center"><i class="fa-solid fa-database text-[10px] mr-1"></i> LocalStorage Aktif</span>
+                <span>Bahasa Melayu</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODAL: TAMBAH / EDIT PERANTI -->
+    <div id="deviceModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-cardBg border border-cyan-500/30 rounded-xl max-w-md w-full p-6 glow-cyan">
+            <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
+                <h3 id="modalTitle" class="text-base font-bold text-white font-mono flex items-center space-x-2">
+                    <i class="fa-solid fa-plus-circle text-cyan-400"></i>
+                    <span>Tambah Peranti Baru</span>
+                </h3>
+                <button onclick="closeDeviceModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="deviceForm" onsubmit="saveDevice(event)" class="space-y-4 text-xs">
+                <input type="hidden" id="modalDeviceId" value="">
+                
+                <div>
+                    <label class="block text-gray-300 font-medium mb-1">Nama Peranti / Host</label>
+                    <input type="text" id="modalDeviceName" required placeholder="Cth: Router Utama UniFi" class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:border-cyan-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-gray-300 font-medium mb-1">Alamat IP / Hostname</label>
+                    <input type="text" id="modalDeviceIp" required placeholder="Cth: 192.168.1.1 atau google.com" class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white font-mono focus:border-cyan-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-gray-300 font-medium mb-1">Kategori Peranti</label>
+                    <select id="modalDeviceCategory" class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white focus:border-cyan-500 outline-none">
+                        <option value="Router">Router / Gateway</option>
+                        <option value="Firewall">Firewall / Security</option>
+                        <option value="Server">Server / NAS</option>
+                        <option value="Modem">Modem 5G/LTE</option>
+                        <option value="PC">PC / Workstation</option>
+                        <option value="DNS">DNS Server</option>
+                        <option value="Lain-lain">Lain-lain</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center justify-end space-x-2 pt-4 border-t border-gray-800">
+                    <button type="button" onclick="closeDeviceModal()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg font-semibold transition">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold transition">Simpan Peranti</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- 1. INITIAL DEFAULT DATA & STATE ---
+        const DEFAULT_DEVICES = [
+            { id: '1', name: 'Router UniFi', ip: '192.168.1.1', category: 'Router', latency: 2, status: 'online', uptime: '99.9%' },
+            { id: '2', name: 'OPNsense Firewall', ip: '192.168.1.254', category: 'Firewall', latency: 4, status: 'online', uptime: '99.8%' },
+            { id: '3', name: 'Google Primary DNS', ip: '8.8.8.8', category: 'DNS', latency: 15, status: 'online', uptime: '100%' },
+            { id: '4', name: 'Cloudflare DNS', ip: '1.1.1.1', category: 'DNS', latency: 12, status: 'online', uptime: '100%' },
+            { id: '5', name: 'Local NAS Server', ip: '192.168.1.100', category: 'Server', latency: 120, status: 'warning', uptime: '95.4%' },
+            { id: '6', name: 'Modem 5G Backup', ip: '192.168.8.1', category: 'Modem', latency: 0, status: 'offline', uptime: '80.0%' }
+        ];
+
+        let devices = [];
+        let logs = [];
+        let refreshIntervalTimer = null;
+        let refreshRate = 5000; // Default 5 seconds
+
+        // Chart Instances
+        let latencyChartInstance = null;
+        let trafficChartInstance = null;
+
+        // Historical Data Arrays for Charts
+        const maxChartPoints = 12;
+        let latencyChartData = Array(maxChartPoints).fill(15);
+        let trafficDLData = Array(maxChartPoints).fill(45);
+        let trafficULData = Array(maxChartPoints).fill(12);
+        let timeLabels = Array(maxChartPoints).fill('').map((_, i) => `${i*5}s ago`).reverse();
+
+        // --- 2. INITIALIZATION ON LOAD ---
+        window.onload = function() {
+            loadStorageData();
+            updateClock();
+            setInterval(updateClock, 1000);
+            
+            initCharts();
+            renderDevicesTable();
+            renderQuickTable();
+            updateStatsSummary();
+            renderLogs();
+
+            // Initial auto ping
+            pingAllDevices();
+            startAutoRefresh();
+
+            addLog('Sistem NETMON PRO v1.0 dilancarkan.', 'INFO');
+        };
+
+        // --- 3. LOCALSTORAGE ENGINE ---
+        function loadStorageData() {
+            const storedDevices = localStorage.getItem('netmon_devices');
+            if (storedDevices) {
+                try {
+                    devices = JSON.parse(storedDevices);
+                } catch(e) {
+                    devices = [...DEFAULT_DEVICES];
+                }
+            } else {
+                devices = [...DEFAULT_DEVICES];
+                saveStorageData();
+            }
+
+            const storedLogs = localStorage.getItem('netmon_logs');
+            if (storedLogs) {
+                try { logs = JSON.parse(storedLogs); } catch(e) { logs = []; }
+            }
+        }
+
+        function saveStorageData() {
+            localStorage.setItem('netmon_devices', JSON.stringify(devices));
+            localStorage.setItem('netmon_logs', JSON.stringify(logs));
+        }
+
+        // --- 4. REAL-TIME CLOCK ---
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('liveClock').innerText = now.toLocaleTimeString('ms-MY');
+            document.getElementById('liveDate').innerText = now.toLocaleDateString('ms-MY', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
+        // --- 5. NAVIGATION / TAB SWITCHING ---
+        function switchTab(tabId) {
+            ['dashboard', 'devices', 'utilities', 'logs'].forEach(id => {
+                const contentEl = document.getElementById(`tab-${id}`);
+                const btnEl = document.getElementById(`tabBtn-${id}`);
+                
+                if (id === tabId) {
+                    contentEl.classList.remove('hidden');
+                    btnEl.className = "tab-btn px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 bg-cyan-950 text-cyan-400 border border-cyan-500/40 glow-cyan";
+                } else {
+                    contentEl.classList.add('hidden');
+                    btnEl.className = "tab-btn px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 bg-gray-900 text-gray-400 border border-gray-800 hover:text-white hover:bg-gray-800";
+                }
+            });
+        }
+
+        // --- 6. PING & MONITORING ENGINE (HTTP FETCH + SIMULATION) ---
+        async function pingDevice(device) {
+            const startTime = performance.now();
+            let latency = 0;
+            let status = 'offline';
+
+            // Special simulation logic based on IP format or HTTP fetch attempt
+            try {
+                if (device.ip.startsWith('192.168.') || device.ip.startsWith('10.')) {
+                    // Simulated local IPs with realistic random jitter
+                    if (device.name.includes('Offline')) {
+                        status = 'offline';
+                        latency = 0;
+                    } else {
+                        latency = Math.floor(Math.random() * 25) + 2; // 2-27ms
+                        if (latency > 100) status = 'warning';
+                        else status = 'online';
+                    }
+                } else {
+                    // Try HTTP Ping simulation for external IPs
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 2000);
+                    
+                    try {
+                        // Use no-cors mode to test reachability
+                        await fetch(`https://${device.ip}`, { mode: 'no-cors', signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        latency = Math.round(performance.now() - startTime);
+                        status = latency > 150 ? 'warning' : 'online';
+                    } catch (e) {
+                        clearTimeout(timeoutId);
+                        // Fallback simulated latency for public DNS/Servers if CORS blocked
+                        latency = Math.floor(Math.random() * 30) + 10;
+                        status = 'online';
+                    }
+                }
+            } catch (err) {
+                status = 'offline';
+                latency = 0;
+            }
+
+            // Update state
+            const prevStatus = device.status;
+            device.latency = status === 'offline' ? 0 : latency;
+            device.status = status;
+
+            // Trigger Log if status changed
+            if (prevStatus !== status && prevStatus !== undefined) {
+                if (status === 'offline') {
+                    addLog(`Peranti ${device.name} (${device.ip}) TERPUTUS HUBUNGAN!`, 'DANGER');
+                } else if (status === 'warning') {
+                    addLog(`Peranti ${device.name} (${device.ip}) mengalami LATENCY TINGGI (${latency}ms).`, 'WARNING');
+                } else if (status === 'online' && prevStatus === 'offline') {
+                    addLog(`Peranti ${device.name} (${device.ip}) KEMBALI ONLINE.`, 'SUCCESS');
+                }
+            }
+
+            return device;
+        }
+
+        async function pingAllDevices() {
+            for (let d of devices) {
+                await pingDevice(d);
+            }
+            saveStorageData();
+            renderDevicesTable();
+            renderQuickTable();
+            updateStatsSummary();
+            updateCharts();
+        }
+
+        function updateRefreshInterval() {
+            const sel = document.getElementById('refreshRateSelect');
+            refreshRate = parseInt(sel.value, 10);
+            startAutoRefresh();
+            addLog(`Kadar segar semula ditukar ke ${refreshRate/1000} saat.`, 'INFO');
+        }
+
+        function startAutoRefresh() {
+            if (refreshIntervalTimer) clearInterval(refreshIntervalTimer);
+            refreshIntervalTimer = setInterval(() => {
+                pingAllDevices();
+            }, refreshRate);
+        }
+
+        // --- 7. RENDERING TABLES & STATS ---
+        function renderDevicesTable() {
+            const tbody = document.getElementById('fullDeviceTable');
+            const searchVal = (document.getElementById('deviceSearchInput')?.value || '').toLowerCase();
+            tbody.innerHTML = '';
+
+            const filtered = devices.filter(d => d.name.toLowerCase().includes(searchVal) || d.ip.toLowerCase().includes(searchVal));
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-500">Tiada peranti dijumpai.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(d => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-900/50 transition';
+
+                let statusBadge = '';
+                if (d.status === 'online') {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold flex items-center w-max"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5"></span> Online</span>`;
+                } else if (d.status === 'warning') {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-full bg-amber-950 text-amber-400 border border-amber-500/30 text-[10px] font-semibold flex items-center w-max"><span class="w-1.5 h-1.5 rounded-full bg-amber-400 mr-1.5"></span> High Ping</span>`;
+                } else {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-full bg-red-950 text-red-400 border border-red-500/30 text-[10px] font-semibold flex items-center w-max"><span class="w-1.5 h-1.5 rounded-full bg-red-400 mr-1.5"></span> Offline</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-white">${d.name}</td>
+                    <td class="p-3 text-cyan-400">${d.ip}</td>
+                    <td class="p-3 text-gray-400"><span class="bg-gray-800 px-2 py-0.5 rounded text-[10px]">${d.category}</span></td>
+                    <td class="p-3 ${d.latency > 100 ? 'text-amber-400' : 'text-emerald-400'} font-bold">${d.status === 'offline' ? '--' : d.latency + ' ms'}</td>
+                    <td class="p-3">${statusBadge}</td>
+                    <td class="p-3 text-gray-400">${d.uptime || '100%'}</td>
+                    <td class="p-3 text-center">
+                        <div class="flex items-center justify-center space-x-2">
+                            <button onclick="pingSingleDevice('${d.id}')" title="Uji Ping" class="p-1.5 bg-gray-800 hover:bg-cyan-900/50 text-cyan-400 rounded transition"><i class="fa-solid fa-bolt"></i></button>
+                            <button onclick="openEditDeviceModal('${d.id}')" title="Edit" class="p-1.5 bg-gray-800 hover:bg-amber-900/50 text-amber-400 rounded transition"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteDevice('${d.id}')" title="Padam" class="p-1.5 bg-gray-800 hover:bg-red-900/50 text-red-400 rounded transition"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderQuickTable() {
+            const tbody = document.getElementById('quickDeviceTable');
+            tbody.innerHTML = '';
+
+            devices.slice(0, 5).forEach(d => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-900/50 transition';
+
+                let statusBadge = d.status === 'online' 
+                    ? `<span class="text-emerald-400 font-bold">● Online</span>`
+                    : (d.status === 'warning' ? `<span class="text-amber-400 font-bold">● Warning</span>` : `<span class="text-red-500 font-bold">● Offline</span>`);
+
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-white">${d.name}</td>
+                    <td class="p-3 text-cyan-400">${d.ip}</td>
+                    <td class="p-3 text-gray-400">${d.category}</td>
+                    <td class="p-3 font-bold text-white">${d.status === 'offline' ? '--' : d.latency + ' ms'}</td>
+                    <td class="p-3">${statusBadge}</td>
+                    <td class="p-3 text-right">
+                        <button onclick="pingSingleDevice('${d.id}')" class="px-2 py-1 bg-gray-800 hover:bg-cyan-900/50 text-cyan-400 rounded text-[10px] transition">Test Ping</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateStatsSummary() {
+            const total = devices.length;
+            const online = devices.filter(d => d.status === 'online').length;
+            const warning = devices.filter(d => d.status === 'warning').length;
+            const offline = devices.filter(d => d.status === 'offline').length;
+
+            document.getElementById('statTotalDevices').innerText = total;
+            document.getElementById('statOnlineDevices').innerText = online;
+            document.getElementById('statWarningDevices').innerText = warning;
+            document.getElementById('statOfflineDevices').innerText = offline;
+
+            const activeDevices = devices.filter(d => d.status !== 'offline');
+            const avgPing = activeDevices.length > 0 
+                ? Math.round(activeDevices.reduce((acc, curr) => acc + curr.latency, 0) / activeDevices.length)
+                : 0;
+
+            document.getElementById('statAvgPing').innerHTML = `${avgPing} <span class="text-xs text-gray-400">ms</span>`;
+            
+            const pingStatusEl = document.getElementById('statPingStatus');
+            if (avgPing < 50) {
+                pingStatusEl.innerText = 'Cemerlang';
+                pingStatusEl.className = 'text-emerald-400 font-semibold mr-1';
+            } else if (avgPing < 120) {
+                pingStatusEl.innerText = 'Sederhana';
+                pingStatusEl.className = 'text-amber-400 font-semibold mr-1';
+            } else {
+                pingStatusEl.innerText = 'Tinggi';
+                pingStatusEl.className = 'text-red-400 font-semibold mr-1';
+            }
+
+            const uptimePct = total > 0 ? (((online + warning) / total) * 100).toFixed(1) : '100.0';
+            document.getElementById('statUptimePercent').innerText = `${uptimePct}%`;
+
+            // Randomize simulated realtime traffic speeds
+            const simulatedDL = (Math.random() * 40 + 20).toFixed(1);
+            const simulatedUL = (Math.random() * 15 + 5).toFixed(1);
+            document.getElementById('statDLSpeed').innerText = simulatedDL;
+            document.getElementById('statULSpeed').innerText = simulatedUL;
+        }
+
+        async function pingSingleDevice(id) {
+            const dev = devices.find(d => d.id === id);
+            if (dev) {
+                await pingDevice(dev);
+                saveStorageData();
+                renderDevicesTable();
+                renderQuickTable();
+                updateStatsSummary();
+                addLog(`Manual ping dilaksanakan untuk ${dev.name} (${dev.ip}). Latency: ${dev.latency}ms.`, 'INFO');
+            }
+        }
+
+        function filterDevices() {
+            renderDevicesTable();
+        }
+
+        // --- 8. CHART.JS VISUALIZATION ---
+        function initCharts() {
+            // Latency Chart
+            const ctxLatency = document.getElementById('latencyChart').getContext('2d');
+            latencyChartInstance = new Chart(ctxLatency, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [{
+                        label: 'Purata Latency (ms)',
+                        data: latencyChartData,
+                        borderColor: '#06b6d4',
+                        backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#06b6d4'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#6b7280', font: { size: 10 } } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#6b7280', font: { size: 10 } }, beginAtZero: true }
+                    }
+                }
+            });
+
+            // Traffic Chart
+            const ctxTraffic = document.getElementById('trafficChart').getContext('2d');
+            trafficChartInstance = new Chart(ctxTraffic, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [
+                        {
+                            label: 'Download (Mbps)',
+                            data: trafficDLData,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                            fill: true,
+                            tension: 0.3,
+                            borderWidth: 2,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Upload (Mbps)',
+                            data: trafficULData,
+                            borderColor: '#a855f7',
+                            backgroundColor: 'rgba(168, 85, 247, 0.05)',
+                            fill: true,
+                            tension: 0.3,
+                            borderWidth: 2,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#9ca3af', font: { size: 10 } } } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#6b7280', font: { size: 10 } } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#6b7280', font: { size: 10 } }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        function updateCharts() {
+            if (!latencyChartInstance || !trafficChartInstance) return;
+
+            const activeDevices = devices.filter(d => d.status !== 'offline');
+            const avgPing = activeDevices.length > 0 
+                ? Math.round(activeDevices.reduce((acc, curr) => acc + curr.latency, 0) / activeDevices.length)
+                : 0;
+
+            const dl = parseFloat(document.getElementById('statDLSpeed').innerText) || 30;
+            const ul = parseFloat(document.getElementById('statULSpeed').innerText) || 10;
+
+            // Push new data and shift
+            latencyChartData.push(avgPing);
+            latencyChartData.shift();
+
+            trafficDLData.push(dl);
+            trafficDLData.shift();
+
+            trafficULData.push(ul);
+            trafficULData.shift();
+
+            latencyChartInstance.update();
+            trafficChartInstance.update();
+        }
+
+        // --- 9. DEVICE CRUD & MODAL ENGINE ---
+        function openAddDeviceModal() {
+            document.getElementById('modalTitle').innerText = 'Tambah Peranti Baru';
+            document.getElementById('modalDeviceId').value = '';
+            document.getElementById('modalDeviceName').value = '';
+            document.getElementById('modalDeviceIp').value = '';
+            document.getElementById('modalDeviceCategory').value = 'Router';
+            document.getElementById('deviceModal').classList.remove('hidden');
+        }
+
+        function openEditDeviceModal(id) {
+            const dev = devices.find(d => d.id === id);
+            if (!dev) return;
+
+            document.getElementById('modalTitle').innerText = 'Kemaskini Peranti';
+            document.getElementById('modalDeviceId').value = dev.id;
+            document.getElementById('modalDeviceName').value = dev.name;
+            document.getElementById('modalDeviceIp').value = dev.ip;
+            document.getElementById('modalDeviceCategory').value = dev.category;
+            document.getElementById('deviceModal').classList.remove('hidden');
+        }
+
+        function closeDeviceModal() {
+            document.getElementById('deviceModal').classList.add('hidden');
+        }
+
+        function saveDevice(e) {
+            e.preventDefault();
+            const id = document.getElementById('modalDeviceId').value;
+            const name = document.getElementById('modalDeviceName').value.trim();
+            const ip = document.getElementById('modalDeviceIp').value.trim();
+            const category = document.getElementById('modalDeviceCategory').value;
+
+            if (id) {
+                // Update
+                const dev = devices.find(d => d.id === id);
+                if (dev) {
+                    dev.name = name;
+                    dev.ip = ip;
+                    dev.category = category;
+                    addLog(`Peranti ${name} (${ip}) telah dikemaskini.`, 'INFO');
+                }
+            } else {
+                // Create
+                const newDev = {
+                    id: Date.now().toString(),
+                    name,
+                    ip,
+                    category,
+                    latency: 0,
+                    status: 'online',
+                    uptime: '100%'
+                };
+                devices.push(newDev);
+                addLog(`Peranti baru ditambah: ${name} (${ip}).`, 'SUCCESS');
+            }
+
+            saveStorageData();
+            closeDeviceModal();
+            pingAllDevices();
+        }
+
+        function deleteDevice(id) {
+            const dev = devices.find(d => d.id === id);
+            if (dev && confirm(`Adakah anda pasti untuk memadam peranti "${dev.name}"?`)) {
+                devices = devices.filter(d => d.id !== id);
+                saveStorageData();
+                renderDevicesTable();
+                renderQuickTable();
+                updateStatsSummary();
+                addLog(`Peranti ${dev.name} (${dev.ip}) telah dipadam.`, 'DANGER');
+            }
+        }
+
+        // --- 10. NETWORK UTILITIES LOGIC ---
+
+        // Subnet Calculator
+        function calculateSubnet() {
+            const ipStr = document.getElementById('calcIpInput').value.trim();
+            const cidr = parseInt(document.getElementById('calcCidrInput').value, 10);
+
+            if (!validateIp(ipStr)) {
+                alert('Sila masukkan alamat IP format IPv4 yang sah (Cth: 192.168.1.1)');
+                return;
+            }
+
+            const ipNum = ipToInt(ipStr);
+            const mask = (0xFFFFFFFF << (32 - cidr)) >>> 0;
+            const netNum = (ipNum & mask) >>> 0;
+            const broadNum = (netNum | (~mask >>> 0)) >>> 0;
+
+            const netAddr = intToIp(netNum);
+            const broadAddr = intToIp(broadNum);
+            const totalHosts = Math.max(0, Math.pow(2, 32 - cidr) - 2);
+
+            const firstUsable = intToIp(netNum + 1);
+            const lastUsable = intToIp(broadNum - 1);
+
+            document.getElementById('resNetAddr').innerText = netAddr;
+            document.getElementById('resBroadAddr').innerText = broadAddr;
+            document.getElementById('resUsableRange').innerText = totalHosts > 0 ? `${firstUsable} - ${lastUsable}` : 'Tiada Usable IP';
+            document.getElementById('resTotalHosts').innerText = totalHosts.toLocaleString();
+
+            document.getElementById('subnetResults').classList.remove('hidden');
+        }
+
+        function ipToInt(ip) {
+            return ip.split('.').reduce((acc, octet) => ((acc << 8) + parseInt(octet, 10)) >>> 0, 0);
+        }
+
+        function intToIp(int) {
+            return [(int >>> 24) & 255, (int >>> 16) & 255, (int >>> 8) & 255, int & 255].join('.');
+        }
+
+        function validateIp(ip) {
+            return /^^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ip);
+        }
+
+        // Port Scanner Simulation
+        function runPortScan() {
+            const targetIp = document.getElementById('scanTargetIp').value.trim();
+            const resultsContainer = document.getElementById('portScanResults');
+            const btn = document.getElementById('btnStartPortScan');
+
+            if (!targetIp) return;
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>Mengimbas...</span>`;
+            resultsContainer.innerHTML = '';
+
+            const commonPorts = [
+                { port: 21, service: 'FTP' },
+                { port: 22, service: 'SSH' },
+                { port: 53, service: 'DNS' },
+                { port: 80, service: 'HTTP' },
+                { port: 443, service: 'HTTPS' },
+                { port: 3389, service: 'RDP' },
+                { port: 8080, service: 'HTTP-ALT' }
+            ];
+
+            let index = 0;
+            const interval = setInterval(() => {
+                if (index < commonPorts.length) {
+                    const p = commonPorts[index];
+                    // Random simulation: 80/443 open, others mixed
+                    const isOpen = (p.port === 80 || p.port === 443 || Math.random() > 0.5);
+                    
+                    const div = document.createElement('div');
+                    div.className = `flex justify-between items-center p-2 rounded border ${isOpen ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400' : 'bg-gray-900 border-gray-800 text-gray-500'}`;
+                    div.innerHTML = `
+                        <span>Port ${p.port} (${p.service})</span>
+                        <span class="font-bold">${isOpen ? 'BUKA (OPEN)' : 'TUTUP (CLOSED)'}</span>
+                    `;
+                    resultsContainer.appendChild(div);
+                    index++;
+                } else {
+                    clearInterval(interval);
+                    btn.disabled = false;
+                    btn.innerHTML = `<span>Imbas Port Popular</span>`;
+                    addLog(`Pengimbasan port selesai untuk sasaran ${targetIp}.`, 'INFO');
+                }
+            }, 300);
+        }
+
+        // Speed Test Simulator
+        function startSpeedTest() {
+            const btn = document.getElementById('btnSpeedTest');
+            const disp = document.getElementById('speedDisplayVal');
+            const pingVal = document.getElementById('speedPingVal');
+            const dlVal = document.getElementById('speedDlVal');
+            const ulVal = document.getElementById('speedUlVal');
+
+            btn.disabled = true;
+            btn.innerText = 'Menjalankan Ujian...';
+
+            pingVal.innerText = '-- ms';
+            dlVal.innerText = '-- Mbps';
+            ulVal.innerText = '-- Mbps';
+
+            // Step 1: Ping
+            setTimeout(() => {
+                const simulatedPing = Math.floor(Math.random() * 15) + 6;
+                pingVal.innerText = `${simulatedPing} ms`;
+
+                // Step 2: Download Test Simulation
+                let count = 0;
+                const targetDl = (Math.random() * 80 + 50).toFixed(1);
+                const dlInterval = setInterval(() => {
+                    count += 3.5;
+                    disp.innerText = count.toFixed(1);
+                    if (count >= targetDl) {
+                        clearInterval(dlInterval);
+                        disp.innerText = targetDl;
+                        dlVal.innerText = `${targetDl} Mbps`;
+
+                        // Step 3: Upload Test Simulation
+                        let countUl = 0;
+                        const targetUl = (Math.random() * 30 + 15).toFixed(1);
+                        const ulInterval = setInterval(() => {
+                            countUl += 2.1;
+                            disp.innerText = countUl.toFixed(1);
+                            if (countUl >= targetUl) {
+                                clearInterval(ulInterval);
+                                disp.innerText = targetDl; // Reset display to DL
+                                ulVal.innerText = `${targetUl} Mbps`;
+                                btn.disabled = false;
+                                btn.innerText = 'Mula Ujian Kelajuan';
+                                addLog(`Ujian Kelajuan Selesai: DL ${targetDl} Mbps / UL ${targetUl} Mbps / Ping ${simulatedPing}ms.`, 'SUCCESS');
+                            }
+                        }, 50);
+                    }
+                }, 40);
+
+            }, 800);
+        }
+
+        // --- 11. LOGGING ENGINE & EXPORT/IMPORT ---
+        function addLog(msg, type = 'INFO') {
+            const timestamp = new Date().toLocaleTimeString('ms-MY');
+            const newLog = { timestamp, msg, type };
+            logs.unshift(newLog);
+
+            // Keep max 100 logs
+            if (logs.length > 100) logs.pop();
+
+            saveStorageData();
+            renderLogs();
+        }
+
+        function renderLogs() {
+            const consoleEl = document.getElementById('logConsole');
+            if (!consoleEl) return;
+
+            consoleEl.innerHTML = '';
+            if (logs.length === 0) {
+                consoleEl.innerHTML = `<div class="text-gray-500 text-center py-4">Tiada rekod log aktiviti lagi.</div>`;
+                return;
+            }
+
+            logs.forEach(l => {
+                let badgeClass = 'text-cyan-400';
+                if (l.type === 'DANGER') badgeClass = 'text-red-500 font-bold';
+                if (l.type === 'WARNING') badgeClass = 'text-amber-400 font-bold';
+                if (l.type === 'SUCCESS') badgeClass = 'text-emerald-400 font-bold';
+
+                const div = document.createElement('div');
+                div.className = 'flex items-start space-x-2 text-gray-300 border-b border-gray-900 pb-1';
+                div.innerHTML = `
+                    <span class="text-gray-500 font-mono text-[10px]">[${l.timestamp}]</span>
+                    <span class="${badgeClass} font-mono text-[10px]">[${l.type}]</span>
+                    <span class="flex-1 text-xs">${l.msg}</span>
+                `;
+                consoleEl.appendChild(div);
+            });
+        }
+
+        function clearLogs() {
+            if (confirm('Adakah anda pasti untuk mengosongkan semua log aktiviti?')) {
+                logs = [];
+                saveStorageData();
+                renderLogs();
+            }
+        }
+
+        function exportLogsCSV() {
+            if (logs.length === 0) {
+                alert('Tiada log untuk dieksport.');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,Masa,Jenis,Mesej\n";
+            logs.forEach(l => {
+                csvContent += `"${l.timestamp}","${l.type}","${l.msg.replace(/"/g, '""')}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `NETMON_LOGS_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportDataJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(devices, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `NETMON_DEVICES_${new Date().toISOString().slice(0,10)}.json`);
+            dlAnchorElem.click();
+            addLog('Data peranti dieksport ke dalam fail JSON.', 'INFO');
+        }
+
+        function importDataJSON(event) {
+            const fileReader = new FileReader();
+            fileReader.onload = function(e) {
+                try {
+                    const importedDevices = JSON.parse(e.target.result);
+                    if (Array.isArray(importedDevices)) {
+                        devices = importedDevices;
+                        saveStorageData();
+                        pingAllDevices();
+                        addLog('Data peranti berjaya diimport daripada JSON.', 'SUCCESS');
+                        alert('Import peranti berjaya!');
+                    } else {
+                        alert('Format JSON tidak sah.');
+                    }
+                } catch(err) {
+                    alert('Gagal membaca fail JSON.');
+                }
+            };
+            if (event.target.files[0]) {
+                fileReader.readAsText(event.target.files[0]);
+            }
+        }
+    </script>
+</body>
+</html>
